@@ -1,0 +1,27 @@
+Informe de configuracion del entorno de desarrollo
+
+    Este documento describe los pasos para preparar una maquina nueva con Java y Maven,
+	con los certificados de la empresa y las llaves de cifrado del equipo.
+
+
+
+1. Instalacion de Java
+	Descarga el JDK desde el portal interno y descomprimelo en   C:\Program Files\Java\jdk-21.
+	Luego ejecuta el script de certificados para que Java confie en los repositorios internos.
+
+2. Configuracion de Maven
+	Maven usa un settings.xml distinto por cada Artifactory.   Cambia de perfil con el menu
+	de configuracion y no edites directamente el archivo de tu carpeta .m2.
+
+
+3. Llaves de cifrado
+    Genera un par de llaves RSA de 2048 bits. La llave publica puede compartirse con el equipo;
+    la llave privada debe guardarse solo en tu maquina, protegida con passphrase.
+
+4. Verificacion
+	Abre una terminal nueva y ejecuta java -version y mvn -v. Si alguno falla, revisa que las
+	variables de usuario JAVA_HOME y MAVEN_HOME apunten a las carpetas correctas.
+
+
+
+Contacto: equipo de infraestructura. Responde dentro de las 24 horas habiles.

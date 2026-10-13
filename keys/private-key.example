@@ -1,0 +1,6 @@
+-----EJEMPLO: NO ES UNA LLAVE VALIDA-----
+Para usar tus propias llaves:
+    python3 rsa_keygen.py --name llave
+Eso genera llave_public.pem y llave_private.pem. Renombra llave_private.pem a
+keys/private-key.pem (o pasa la ruta con --privkey al script).
+Nunca compartas la llave privada real ni la subas al repositorio.

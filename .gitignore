@@ -23,6 +23,17 @@ certs/
 *.crt
 *.bak
 
+# Generated RSA keys: never commit private keys (the *.example templates are tracked)
+keys/*
+!keys/*.example
+*.pem
+
+# Personal configuration: copy from the *.example templates and edit
+.env
+domains.json
+config/java.json
+config/maven.json
+
 # OS
 .DS_Store
 Thumbs.db

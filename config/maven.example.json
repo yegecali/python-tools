@@ -1,0 +1,9 @@
+{
+  "versions": {
+    "3.9.9": "C:\\tools\\apache-maven-3.9.9"
+  },
+  "settings_profiles": {
+    "artifactory-empresa": "C:\\tools\\maven\\settings-empresa.xml",
+    "artifactory-cliente": "C:\\tools\\maven\\settings-cliente.xml"
+  }
+}
