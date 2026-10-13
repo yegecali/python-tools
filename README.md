@@ -386,3 +386,19 @@ Reglas:
 - Una variable real del sistema tiene prioridad sobre el `.env`. Por ejemplo, `QR_CHUNK_SIZE=300 python3 text_qr.py generate ...` lo usa solo en esa ejecución.
 - Un argumento de línea de comandos, como `--ec H`, tiene prioridad sobre todo lo anterior.
 - `.env` está en `.gitignore`, porque puede contener contraseñas. Lo que se versiona es `.env.example`.
+
+## Pruebas unitarias
+
+Las pruebas están en `tests/` y usan `pytest`. Cubren la configuración `.env`, la instalación
+de certificados (lectura de dominios y búsqueda de `keytool`), las llaves RSA y el cifrado,
+los QR y `text_qr` (incluido el reensamblado y los errores), y la lógica de Windows (PATH,
+perfiles de `settings.xml` y el registro, simulado). No necesitan red ni `keytool`, y no usan tu `.env`.
+
+```bash
+python3 -m pip install -r requirements.txt -r requirements-dev.txt
+python3 -m pytest
+```
+
+En **GitHub Actions** (`.github/workflows/tests.yml`) las pruebas se ejecutan en cada push a
+`main` sobre Ubuntu, macOS y Windows, con Python 3.12 y 3.14. Si alguna falla, el push queda
+marcado en rojo. También puedes lanzarlas a mano desde la pestaña *Actions*.
