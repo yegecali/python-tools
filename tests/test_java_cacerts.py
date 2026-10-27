@@ -155,3 +155,29 @@ def test_failed_download_keeps_previous_crt(tmp_path, monkeypatch):
     with pytest.raises(SystemExit):
         installer.main()
     assert (certs / "google.com.crt").read_text() == "PEM-PREVIO"
+
+
+def test_ask_java_home_offers_configured_versions(tmp_path, monkeypatch):
+    config = tmp_path / "java.json"
+    config.write_text(json.dumps({"versions": {"21": "C:\\jdk-21", "17": "C:\\jdk-17"}}), encoding="utf-8")
+    monkeypatch.setattr(installer.windows_env_setup, "JAVA_CONFIG", config)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "2")
+
+    assert installer.ask_java_home() == "C:\\jdk-17"
+
+
+def test_ask_java_home_allows_typing_another_path(tmp_path, monkeypatch):
+    config = tmp_path / "java.json"
+    config.write_text(json.dumps({"versions": {"21": "C:\\jdk-21"}}), encoding="utf-8")
+    monkeypatch.setattr(installer.windows_env_setup, "JAVA_CONFIG", config)
+    answers = iter(["2", "D:\\otro-jdk"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
+
+    assert installer.ask_java_home() == "D:\\otro-jdk"
+
+
+def test_ask_java_home_asks_path_when_nothing_is_configured(tmp_path, monkeypatch):
+    monkeypatch.setattr(installer.windows_env_setup, "JAVA_CONFIG", tmp_path / "missing.json")
+    monkeypatch.setattr("builtins.input", lambda prompt="": "  /opt/jdk  ")
+
+    assert installer.ask_java_home() == "/opt/jdk"

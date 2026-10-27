@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import project_settings
+import windows_env_setup
 
 DOMAINS_FILE = project_settings.get_path("DOMAINS_FILE", "config/domains.json")
 CERTS_DIR = "certs"
@@ -97,8 +98,22 @@ def run_keytool(java_home, *args):
     )
 
 
+def ask_java_home():
+    """Offer the Java versions from config/java.json; type a path only if there are none."""
+    manual = "Directorio de tu Java (JAVA_HOME): "
+    if not windows_env_setup.JAVA_CONFIG.exists():
+        return input(manual).strip()
+
+    config = windows_env_setup.load_config(windows_env_setup.JAVA_CONFIG)
+    options = {**config["versions"], "(otra ruta)": "escribir el directorio a mano"}
+    chosen = windows_env_setup.ask_choice("Versiones de Java configuradas:", options)
+    if chosen == "(otra ruta)":
+        return input(manual).strip()
+    return config["versions"][chosen]
+
+
 def main():
-    raw = input("Directorio de tu Java (JAVA_HOME): ").strip()
+    raw = ask_java_home()
     java_home = resolve_java_home(raw)
     if java_home is None:
         sys.exit(f"[x] No encuentro bin/keytool dentro de: {raw}")
