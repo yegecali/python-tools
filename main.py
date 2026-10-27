@@ -26,6 +26,7 @@ import sys
 
 import java_cacerts_installer
 import project_settings
+import ui
 import windows_env_setup
 
 try:
@@ -34,7 +35,7 @@ try:
     import rsa_keygen
     import text_qr
 except ImportError as error:
-    raise SystemExit(f"[x] Falta la dependencia '{error.name}'. Instala con: pip install -r requirements.txt")
+    raise SystemExit(f"{ui.icon('error')} Falta la dependencia '{error.name}'. Instala con: pip install -r requirements.txt")
 
 DEFAULT_PUBLIC = str(project_settings.get_path("PUBLIC_KEY_FILE", "keys/rsa_public.pem"))
 DEFAULT_PRIVATE = str(project_settings.get_path("PRIVATE_KEY_FILE", "keys/rsa_private.pem"))
@@ -54,7 +55,7 @@ def run_step(func, *args):
         if isinstance(error.code, str):
             print(error.code)
         elif error.code:
-            print("[x] El paso termino con errores")
+            print(f"{ui.icon('error')} El paso termino con errores")
 
 
 def action_cacerts():
@@ -84,7 +85,7 @@ def action_decrypt():
     privkey = ask("Llave privada", DEFAULT_PRIVATE)
     source = ask("Archivo JSON encriptado")
     if not source:
-        print("[x] Indica el archivo JSON encriptado")
+        print(f"{ui.icon('error')} Indica el archivo JSON encriptado")
         return
     out = ask("Archivo de salida (vacio = mostrar en pantalla)")
     argv = ["decrypt", "--privkey", privkey, "--in", source]
@@ -96,7 +97,7 @@ def action_decrypt():
 def action_qr():
     text = ask("Texto para el QR")
     if not text:
-        print("[x] El texto esta vacio")
+        print(f"{ui.icon('error')} El texto esta vacio")
         return
     out = ask("Archivo de salida .png o .svg (vacio = mostrar en pantalla)")
     argv = ["--out", out] if out else []
@@ -107,7 +108,7 @@ def action_qr():
 def action_text_generate():
     source = ask("Archivo .txt de origen")
     if not source:
-        print("[x] Indica el archivo .txt")
+        print(f"{ui.icon('error')} Indica el archivo .txt")
         return
     out_dir = ask("Carpeta para guardar los PNG (vacio = mostrar en pantalla)")
     argv = ["generate", source]
@@ -122,7 +123,7 @@ def action_text_generate():
 def action_text_restore():
     parts = ask("Archivo .txt con una parte de QR por linea")
     if not parts:
-        print("[x] Indica el archivo con las partes")
+        print(f"{ui.icon('error')} Indica el archivo con las partes")
         return
     privkey = ask("Llave privada (solo si el mensaje esta encriptado)", DEFAULT_PRIVATE)
     out = ask("Archivo de salida (vacio = mostrar en pantalla)")
@@ -154,24 +155,36 @@ MENU = [
     (windows_label(), action_windows_env),
 ]
 
+TOOL_ICONS = {
+    action_cacerts: "tool_cacerts",
+    action_keygen: "tool_keygen",
+    action_encrypt: "tool_encrypt",
+    action_decrypt: "tool_decrypt",
+    action_qr: "tool_qr",
+    action_text_generate: "tool_text_generate",
+    action_text_restore: "tool_text_restore",
+    action_windows_env: "tool_windows",
+}
+
 
 def menu():
+    print(f"\n{ui.icon('banner')} Caja de herramientas de Python")
     while True:
-        print("\n=== Herramientas ===")
-        for number, (label, _) in enumerate(MENU, 1):
-            print(f"  {number}) {label}")
-        print("  0) Salir")
+        print(f"\n{ui.icon('title')} Herramientas")
+        for number, (label, action) in enumerate(MENU, 1):
+            print(f"  {number}) {ui.icon(TOOL_ICONS[action])} {label}")
+        print(f"  0) {ui.icon('exit')} Salir")
 
-        choice = input("Opcion: ").strip()
+        choice = input(f"{ui.icon('prompt')} Opcion: ").strip()
         if choice == "0":
             return
         if not choice.isdigit() or not 1 <= int(choice) <= len(MENU):
-            print("[!] Opcion no valida")
+            print(f"{ui.icon('warn')} Opcion no valida")
             continue
         try:
             MENU[int(choice) - 1][1]()
         except KeyboardInterrupt:
-            print("\n[x] Operacion cancelada, volviendo al menu")
+            print(f"\n{ui.icon('error')} Operacion cancelada, volviendo al menu")
 
 
 def dispatch(argv):
@@ -190,7 +203,7 @@ def dispatch(argv):
         run_step(windows_env_setup.main)
     else:
         sys.exit(
-            f"[x] Comando desconocido: {command}\n"
+            f"{ui.icon('error')} Comando desconocido: {command}\n"
             "Uso: python3 main.py [cacerts|keygen|encrypt|decrypt|qr|textqr|env]"
         )
 
@@ -204,4 +217,4 @@ if __name__ == "__main__":
         else:
             menu()
     except (KeyboardInterrupt, EOFError):
-        sys.exit("\n[x] Cancelado")
+        sys.exit(f"\n{ui.icon('error')} Cancelado")
