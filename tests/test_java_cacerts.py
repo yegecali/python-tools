@@ -147,6 +147,7 @@ def test_failed_download_keeps_previous_crt(tmp_path, monkeypatch):
     monkeypatch.setattr(installer.getpass, "getpass", lambda prompt="": "changeit")
     monkeypatch.setattr("builtins.input", lambda prompt="": str(home))
     monkeypatch.setattr(installer, "fetch_pem", unreachable)
+    monkeypatch.setattr(installer, "CERT_RETRY_DELAY", 0)
     monkeypatch.setattr(
         installer, "run_keytool",
         lambda java_home, *args: subprocess.CompletedProcess(args, 0, stdout="", stderr=""),
@@ -155,6 +156,39 @@ def test_failed_download_keeps_previous_crt(tmp_path, monkeypatch):
     with pytest.raises(SystemExit):
         installer.main()
     assert (certs / "google.com.crt").read_text() == "PEM-PREVIO"
+
+
+def test_download_retries_until_it_succeeds(monkeypatch):
+    calls = []
+
+    def flaky(host, port, timeout=10):
+        calls.append(timeout)
+        if len(calls) < 3:
+            raise TimeoutError("timed out")
+        return "PEM-OK"
+
+    monkeypatch.setattr(installer, "fetch_pem", flaky)
+    monkeypatch.setattr(installer, "CERT_RETRY_DELAY", 0)
+    monkeypatch.setattr(installer, "CERT_ATTEMPTS", 3)
+
+    assert installer.download_pem("github.com", 443) == "PEM-OK"
+    assert calls == [installer.CERT_TIMEOUT] * 3
+
+
+def test_download_waits_longer_after_each_failure(monkeypatch):
+    waits = []
+
+    def always_fails(host, port, timeout=10):
+        raise OSError("sin conexion")
+
+    monkeypatch.setattr(installer, "fetch_pem", always_fails)
+    monkeypatch.setattr(installer.time, "sleep", waits.append)
+    monkeypatch.setattr(installer, "CERT_RETRY_DELAY", 2)
+    monkeypatch.setattr(installer, "CERT_ATTEMPTS", 3)
+
+    with pytest.raises(OSError):
+        installer.download_pem("github.com", 443)
+    assert waits == [2, 4]
 
 
 def test_ask_java_home_offers_configured_versions(tmp_path, monkeypatch):

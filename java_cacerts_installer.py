@@ -13,6 +13,7 @@ import socket
 import ssl
 import subprocess
 import sys
+import time
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -22,6 +23,10 @@ import windows_env_setup
 DOMAINS_FILE = project_settings.get_path("DOMAINS_FILE", "config/domains.json")
 CERTS_DIR = "certs"
 DEFAULT_PASSWORD = project_settings.get("CACERTS_PASSWORD", "changeit")
+# Downloads can fail on a slow or unstable network: wait longer and retry before giving up
+CERT_TIMEOUT = project_settings.get_int("CERT_FETCH_TIMEOUT", 20)
+CERT_ATTEMPTS = project_settings.get_int("CERT_FETCH_ATTEMPTS", 3)
+CERT_RETRY_DELAY = project_settings.get_int("CERT_FETCH_RETRY_DELAY", 2)
 CACERTS_CANDIDATES = ["lib/security/cacerts", "jre/lib/security/cacerts"]
 KEYTOOL_NAME = "keytool.exe" if sys.platform == "win32" else "keytool"
 
@@ -75,6 +80,20 @@ def fetch_pem(host, port, timeout=10):
             der = tls.getpeercert(binary_form=True)
     print(f"  Certificado recibido ({len(der)} bytes)")
     return ssl.DER_cert_to_PEM_cert(der)
+
+
+def download_pem(host, port):
+    """Retry fetch_pem with growing waits (2 s, 4 s, ...) before reporting the host as failed."""
+    for attempt in range(1, CERT_ATTEMPTS + 1):
+        try:
+            return fetch_pem(host, port, CERT_TIMEOUT)
+        except OSError as error:
+            if attempt == CERT_ATTEMPTS:
+                raise
+            wait = CERT_RETRY_DELAY * 2 ** (attempt - 1)
+            print(f"  [!] Intento {attempt}/{CERT_ATTEMPTS} fallo: {error}")
+            print(f"      Reintentando en {wait} s ...")
+            time.sleep(wait)
 
 
 def run_keytool(java_home, *args):
@@ -155,7 +174,7 @@ def main():
         print(f"\n[{index}/{len(hosts)}] {alias}")
 
         try:
-            pem = fetch_pem(host, port)
+            pem = download_pem(host, port)
         except OSError as error:
             print(f"  [x] No se pudo descargar el certificado: {error}")
             failed.append(alias)
