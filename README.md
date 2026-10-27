@@ -59,8 +59,8 @@ herramienta directamente:
 python3 main.py                                # menú interactivo
 python3 main.py cacerts                        # certificados en cacerts
 python3 main.py keygen --bits 4096             # llaves RSA
-python3 main.py encrypt --pubkey keys/public-key.pem --out secret.json   # pide el valor oculto
-python3 main.py decrypt --privkey keys/private-key.pem --in secret.json
+python3 main.py encrypt --pubkey keys/rsa_public.pem --out secret.json   # pide el valor oculto
+python3 main.py decrypt --privkey keys/rsa_private.pem --in secret.json
 python3 main.py qr -- "https://intranet.empresa.com"
 python3 main.py textqr generate text.example.txt --out-dir qr_out
 python3 main.py textqr restore parts.txt --out recuperado.txt
@@ -328,11 +328,11 @@ python3 text_qr.py generate text.example.txt --out-dir qr_out
 python3 text_qr.py generate text.example.txt
 
 # Encriptar con tu llave publica
-python3 text_qr.py generate text.example.txt --encrypt --pubkey keys/public-key.pem --out-dir qr_out
+python3 text_qr.py generate text.example.txt --encrypt --pubkey keys/rsa_public.pem --out-dir qr_out
 
 # Reconstruir el texto: escribe el contenido de cada QR en una linea de parts.txt
 python3 text_qr.py restore parts.txt --out recuperado.txt
-python3 text_qr.py restore parts.txt --privkey keys/private-key.pem --out recuperado.txt  # encriptado
+python3 text_qr.py restore parts.txt --privkey keys/rsa_private.pem --out recuperado.txt  # encriptado
 ```
 
 Opciones de `generate`:
@@ -353,7 +353,7 @@ una línea de `parts.txt`. Después ejecuta `restore`.
 
 **Llaves:** `keys/public-key.example` y `keys/private-key.example` son solo plantillas. Para
 usarlas, genera tu par con `rsa_keygen.py --name llave` y renombra los archivos a
-`keys/public-key.pem` y `keys/private-key.pem`, o pasa las rutas con `--pubkey` y `--privkey`.
+`keys/rsa_public.pem` y `keys/rsa_private.pem`, o pasa las rutas con `--pubkey` y `--privkey`.
 
 Capacidad: cada parte debe caber en un QR (ver la tabla de la sección de QR). Con el
 valor por defecto `--chunk 1200` cabe con el nivel `M`.
@@ -375,7 +375,7 @@ Variables principales:
 | `JAVA_CONFIG_FILE` / `MAVEN_CONFIG_FILE` | `config/java.json` / `config/maven.json` | versiones de Java y Maven (Windows) |
 | `KEYS_DIR` | `keys` | carpeta de las llaves |
 | `RSA_KEY_BITS` | `2048` | tamaño por defecto de las llaves RSA |
-| `PUBLIC_KEY_FILE` / `PRIVATE_KEY_FILE` | `keys/public-key.pem` / `keys/private-key.pem` | llaves usadas por defecto |
+| `PUBLIC_KEY_FILE` / `PRIVATE_KEY_FILE` | `keys/rsa_public.pem` / `keys/rsa_private.pem` | llaves usadas por defecto |
 | `QR_ERROR_CORRECTION` | `M` | corrección de errores de los QR (L, M, Q o H) |
 | `QR_BOX_SIZE` | `10` | tamaño de cada módulo en PNG |
 | `QR_CHUNK_SIZE` | `1200` | caracteres por parte al dividir un texto en QR |

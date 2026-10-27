@@ -62,12 +62,22 @@ def decrypt(private_key, payload):
     return AESGCM(aes_key).decrypt(b64decode(payload["nonce"]), b64decode(payload["data"]), None)
 
 
+def read_key_file(path, kind):
+    key_file = Path(path)
+    if not key_file.is_file():
+        sys.exit(
+            f"[x] No existe la llave {kind}: {key_file}\n"
+            "    Genera primero las llaves con la opcion 'Generar llaves RSA' del menu"
+        )
+    return key_file.read_bytes()
+
+
 def load_public_key(path):
-    return serialization.load_pem_public_key(Path(path).read_bytes())
+    return serialization.load_pem_public_key(read_key_file(path, "publica"))
 
 
 def load_private_key(path):
-    pem = Path(path).read_bytes()
+    pem = read_key_file(path, "privada")
     try:
         return serialization.load_pem_private_key(pem, password=None)
     except TypeError:

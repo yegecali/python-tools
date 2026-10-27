@@ -105,3 +105,8 @@ def test_keygen_rejects_mismatched_passphrases(tmp_path, monkeypatch):
     monkeypatch.setattr(getpass, "getpass", lambda prompt="": next(answers))
     with pytest.raises(SystemExit, match="no coinciden"):
         rsa_keygen.main(["--name", "mal", "--bits", "2048", "--out", str(tmp_path)])
+
+
+def test_missing_public_key_explains_how_to_generate_keys(tmp_path):
+    with pytest.raises(SystemExit, match="Generar llaves RSA"):
+        rsa_crypt.load_public_key(tmp_path / "rsa_public.pem")

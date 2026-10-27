@@ -36,8 +36,8 @@ try:
 except ImportError as error:
     raise SystemExit(f"[x] Falta la dependencia '{error.name}'. Instala con: pip install -r requirements.txt")
 
-DEFAULT_PUBLIC = str(project_settings.get_path("PUBLIC_KEY_FILE", "keys/public-key.pem"))
-DEFAULT_PRIVATE = str(project_settings.get_path("PRIVATE_KEY_FILE", "keys/private-key.pem"))
+DEFAULT_PUBLIC = str(project_settings.get_path("PUBLIC_KEY_FILE", "keys/rsa_public.pem"))
+DEFAULT_PRIVATE = str(project_settings.get_path("PRIVATE_KEY_FILE", "keys/rsa_private.pem"))
 
 
 def ask(prompt, default=""):

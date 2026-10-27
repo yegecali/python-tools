@@ -13,8 +13,8 @@ Each QR holds a single line:
 
 Examples:
     python3 text_qr.py generate text.example.txt --out-dir qr_out
-    python3 text_qr.py generate text.example.txt --encrypt --pubkey keys/public-key.pem
-    python3 text_qr.py restore parts.txt --privkey keys/private-key.pem
+    python3 text_qr.py generate text.example.txt --encrypt --pubkey keys/rsa_public.pem
+    python3 text_qr.py restore parts.txt --privkey keys/rsa_private.pem
 """
 
 import argparse
@@ -33,8 +33,8 @@ from qr_generator import build_qr, print_terminal, save_qr
 
 HEADER = "TQR1"
 DEFAULT_CHUNK = project_settings.get_int("QR_CHUNK_SIZE", 1200)
-DEFAULT_PUBKEY = project_settings.get_path("PUBLIC_KEY_FILE", "keys/public-key.pem")
-DEFAULT_PRIVKEY = project_settings.get_path("PRIVATE_KEY_FILE", "keys/private-key.pem")
+DEFAULT_PUBKEY = project_settings.get_path("PUBLIC_KEY_FILE", "keys/rsa_public.pem")
+DEFAULT_PRIVKEY = project_settings.get_path("PRIVATE_KEY_FILE", "keys/rsa_private.pem")
 
 
 def clean_text(raw, keep_newlines=False):
@@ -193,13 +193,13 @@ def build_parser():
                      help="tamano de cada modulo en pixeles para PNG (default: QR_BOX_SIZE o 10)")
     gen.add_argument("--keep-newlines", action="store_true", help="conservar los saltos de parrafo")
     gen.add_argument("--encrypt", action="store_true", help="encriptar con la llave publica")
-    gen.add_argument("--pubkey", default=str(DEFAULT_PUBKEY), help="llave publica PEM (default: keys/public-key.pem)")
+    gen.add_argument("--pubkey", default=str(DEFAULT_PUBKEY), help="llave publica PEM (default: keys/rsa_public.pem)")
     gen.set_defaults(func=cmd_generate)
 
     res = subparsers.add_parser("restore", help="reconstruir el texto desde el contenido de las partes")
     res.add_argument("file", help="archivo .txt con una parte TQR1 por linea")
     res.add_argument("--privkey", default=str(DEFAULT_PRIVKEY),
-                     help="llave privada PEM, solo si el mensaje esta encriptado (default: keys/private-key.pem)")
+                     help="llave privada PEM, solo si el mensaje esta encriptado (default: keys/rsa_private.pem)")
     res.add_argument("--out", help="guardar el texto restaurado en un archivo")
     res.set_defaults(func=cmd_restore)
 
