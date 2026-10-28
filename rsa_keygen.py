@@ -33,9 +33,9 @@ def ask_passphrase():
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Genera un par de llaves RSA en formato PEM.")
     parser.add_argument("--name", default="rsa", help="prefijo de los archivos (default: rsa)")
-    parser.add_argument("--bits", type=int, default=project_settings.get_int("RSA_KEY_BITS", 2048), choices=[2048, 3072, 4096],
+    parser.add_argument("--bits", type=int, default=project_settings.RSA_KEY_BITS, choices=[2048, 3072, 4096],
                         help="tamano de la llave en bits (default: 2048)")
-    parser.add_argument("--out", default=project_settings.get_path("KEYS_DIR", "keys"),
+    parser.add_argument("--out", default=project_settings.KEYS_DIR,
                         help="directorio de salida (default: KEYS_DIR o keys)")
     parser.add_argument("--force", action="store_true", help="sobrescribir si ya existen")
     args = parser.parse_args(argv)

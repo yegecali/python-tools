@@ -32,9 +32,9 @@ import rsa_crypt
 from qr_generator import build_qr, print_terminal, save_qr
 
 HEADER = "TQR1"
-DEFAULT_CHUNK = project_settings.get_int("QR_CHUNK_SIZE", 1200)
-DEFAULT_PUBKEY = project_settings.get_path("PUBLIC_KEY_FILE", "keys/rsa_public.pem")
-DEFAULT_PRIVKEY = project_settings.get_path("PRIVATE_KEY_FILE", "keys/rsa_private.pem")
+DEFAULT_CHUNK = project_settings.QR_CHUNK_SIZE
+DEFAULT_PUBKEY = project_settings.PUBLIC_KEY_FILE
+DEFAULT_PRIVKEY = project_settings.PRIVATE_KEY_FILE
 
 
 def clean_text(raw, keep_newlines=False):
@@ -187,9 +187,9 @@ def build_parser():
     gen.add_argument("--out-dir", help="guardar cada parte como PNG en esta carpeta; sin esto se muestran en terminal")
     gen.add_argument("--chunk", type=int, default=DEFAULT_CHUNK,
                      help=f"caracteres por parte (default: {DEFAULT_CHUNK})")
-    gen.add_argument("--ec", default=project_settings.get_choice("QR_ERROR_CORRECTION", "M", ["L", "M", "Q", "H"]),
+    gen.add_argument("--ec", default=project_settings.QR_ERROR_CORRECTION,
                      choices=["L", "M", "Q", "H"], help="correccion de errores (default: QR_ERROR_CORRECTION o M)")
-    gen.add_argument("--box", type=int, default=project_settings.get_int("QR_BOX_SIZE", 10),
+    gen.add_argument("--box", type=int, default=project_settings.QR_BOX_SIZE,
                      help="tamano de cada modulo en pixeles para PNG (default: QR_BOX_SIZE o 10)")
     gen.add_argument("--keep-newlines", action="store_true", help="conservar los saltos de parrafo")
     gen.add_argument("--encrypt", action="store_true", help="encriptar con la llave publica")

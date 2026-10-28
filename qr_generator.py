@@ -72,10 +72,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Genera un codigo QR a partir de un texto.")
     parser.add_argument("text", nargs="?", help="texto a codificar; si se omite se pide por consola")
     parser.add_argument("--out", type=Path, help="archivo de salida (.png o .svg); sin esto se muestra en pantalla")
-    parser.add_argument("--ec", default=project_settings.get_choice("QR_ERROR_CORRECTION", "M", list(EC_LEVELS)),
+    parser.add_argument("--ec", default=project_settings.QR_ERROR_CORRECTION,
                         choices=list(EC_LEVELS),
                         help="nivel de correccion de errores (default: M)")
-    parser.add_argument("--box", type=int, default=project_settings.get_int("QR_BOX_SIZE", 10),
+    parser.add_argument("--box", type=int, default=project_settings.QR_BOX_SIZE,
                         help="tamano de cada modulo en pixeles (default: QR_BOX_SIZE o 10)")
     args = parser.parse_args(argv)
 

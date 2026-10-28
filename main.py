@@ -37,8 +37,8 @@ try:
 except ImportError as error:
     raise SystemExit(f"{ui.icon('error')} Falta la dependencia '{error.name}'. Instala con: pip install -r requirements.txt")
 
-DEFAULT_PUBLIC = str(project_settings.get_path("PUBLIC_KEY_FILE", "keys/rsa_public.pem"))
-DEFAULT_PRIVATE = str(project_settings.get_path("PRIVATE_KEY_FILE", "keys/rsa_private.pem"))
+DEFAULT_PUBLIC = str(project_settings.PUBLIC_KEY_FILE)
+DEFAULT_PRIVATE = str(project_settings.PRIVATE_KEY_FILE)
 
 
 def ask(prompt, default=""):
@@ -65,7 +65,7 @@ def action_cacerts():
 def action_keygen():
     name = ask("Prefijo de los archivos", "rsa")
     bits = ask("Tamano en bits (2048, 3072, 4096)", "2048")
-    out = ask("Directorio de salida", str(project_settings.get_path("KEYS_DIR", "keys")))
+    out = ask("Directorio de salida", str(project_settings.KEYS_DIR))
     argv = ["--name", name, "--bits", bits, "--out", out]
     if ask("Sobrescribir si ya existen? (s/N)", "n").lower() == "s":
         argv.append("--force")

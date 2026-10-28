@@ -54,3 +54,19 @@ def get_choice(name, default, choices):
 def get_path(name, default):
     path = Path(get(name, default)).expanduser()
     return path if path.is_absolute() else ROOT / path
+
+
+# Shared file locations and defaults. Every module reads them from here.
+DOMAINS_FILE = get_path("DOMAINS_FILE", "config/domains.json")
+JAVA_CONFIG_FILE = get_path("JAVA_CONFIG_FILE", "config/java.json")
+MAVEN_CONFIG_FILE = get_path("MAVEN_CONFIG_FILE", "config/maven.json")
+KEYS_DIR = get_path("KEYS_DIR", "keys")
+PUBLIC_KEY_FILE = get_path("PUBLIC_KEY_FILE", "keys/rsa_public.pem")
+PRIVATE_KEY_FILE = get_path("PRIVATE_KEY_FILE", "keys/rsa_private.pem")
+RSA_KEY_BITS = get_int("RSA_KEY_BITS", 2048)
+QR_ERROR_CORRECTION = get_choice("QR_ERROR_CORRECTION", "M", ["L", "M", "Q", "H"])
+QR_BOX_SIZE = get_int("QR_BOX_SIZE", 10)
+QR_CHUNK_SIZE = get_int("QR_CHUNK_SIZE", 1200)
+CERT_FETCH_TIMEOUT = get_int("CERT_FETCH_TIMEOUT", 20)
+CERT_FETCH_ATTEMPTS = get_int("CERT_FETCH_ATTEMPTS", 3)
+CERT_FETCH_RETRY_DELAY = get_int("CERT_FETCH_RETRY_DELAY", 2)

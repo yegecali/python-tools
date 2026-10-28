@@ -20,8 +20,8 @@ from pathlib import Path
 
 import project_settings
 
-JAVA_CONFIG = project_settings.get_path("JAVA_CONFIG_FILE", "config/java.json")
-MAVEN_CONFIG = project_settings.get_path("MAVEN_CONFIG_FILE", "config/maven.json")
+JAVA_CONFIG = project_settings.JAVA_CONFIG_FILE
+MAVEN_CONFIG = project_settings.MAVEN_CONFIG_FILE
 
 JAVA_ENTRY = "%JAVA_HOME%\\bin"
 MAVEN_ENTRY = "%MAVEN_HOME%\\bin"

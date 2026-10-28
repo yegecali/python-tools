@@ -20,13 +20,13 @@ from urllib.parse import urlparse
 import project_settings
 import windows_env_setup
 
-DOMAINS_FILE = project_settings.get_path("DOMAINS_FILE", "config/domains.json")
+DOMAINS_FILE = project_settings.DOMAINS_FILE
 CERTS_DIR = "certs"
 DEFAULT_PASSWORD = project_settings.get("CACERTS_PASSWORD", "changeit")
 # Downloads can fail on a slow or unstable network: wait longer and retry before giving up
-CERT_TIMEOUT = project_settings.get_int("CERT_FETCH_TIMEOUT", 20)
-CERT_ATTEMPTS = project_settings.get_int("CERT_FETCH_ATTEMPTS", 3)
-CERT_RETRY_DELAY = project_settings.get_int("CERT_FETCH_RETRY_DELAY", 2)
+CERT_TIMEOUT = project_settings.CERT_FETCH_TIMEOUT
+CERT_ATTEMPTS = project_settings.CERT_FETCH_ATTEMPTS
+CERT_RETRY_DELAY = project_settings.CERT_FETCH_RETRY_DELAY
 CACERTS_CANDIDATES = ["lib/security/cacerts", "jre/lib/security/cacerts"]
 KEYTOOL_NAME = "keytool.exe" if sys.platform == "win32" else "keytool"
 
