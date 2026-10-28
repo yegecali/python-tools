@@ -10,7 +10,8 @@ from errors import ToolError
 
 def test_menu_lists_every_tool():
     labels = [tool.label for tool in app.MENU]
-    assert len(labels) == 8
+    assert len(labels) == 9
+    assert any("configuracion" in label for label in labels)
     assert any("QR" in label for label in labels)
     assert any("Windows" in label for label in labels)
 

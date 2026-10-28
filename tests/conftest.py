@@ -35,3 +35,12 @@ def rsa_key_files(tmp_path_factory):
 def other_rsa_key_files(tmp_path_factory):
     """A second, unrelated key pair, used to check that decryption fails with the wrong key."""
     return _write_key_pair(tmp_path_factory.mktemp("other_keys"), "other")
+
+
+@pytest.fixture(autouse=True)
+def isolated_audit_log(tmp_path, monkeypatch):
+    """Tests write their audit trail to a temporary file, never to the project's logs folder."""
+    import audit
+
+    monkeypatch.setattr(audit, "AUDIT_FILE", tmp_path / "audit.log")
+    return tmp_path / "audit.log"

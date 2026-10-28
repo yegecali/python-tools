@@ -28,6 +28,9 @@ keys/*
 !keys/*.example
 *.pem
 
+# Audit trail written by the tools
+logs/
+
 # Personal configuration: copy from the *.example templates and edit
 .env
 domains.json

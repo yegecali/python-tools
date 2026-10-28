@@ -23,6 +23,7 @@ ICONS = {
     "tool_text_generate": ("📄", "[TXT]"),
     "tool_text_restore": ("🧩", "[REST]"),
     "tool_windows": ("💻", "[WIN]"),
+    "tool_check": ("🩺", "[CHK]"),
 }
 
 

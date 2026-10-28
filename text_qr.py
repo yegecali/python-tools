@@ -28,6 +28,7 @@ from pathlib import Path
 from cryptography.exceptions import InvalidTag
 
 from errors import ToolError, run_cli
+import audit
 import ui
 import project_settings
 import rsa_crypt
@@ -154,6 +155,7 @@ def cmd_generate(args):
         raise ToolError("Una parte no cabe en un QR. Usa un --chunk mas pequeno")
 
     total = len(qrs)
+    audit.record("qr.generate", "ok", source=str(source), encrypted=mode == "E", parts=total)
     if args.out_dir:
         out_dir = Path(args.out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -172,7 +174,12 @@ def cmd_generate(args):
 
 def cmd_restore(args):
     lines = Path(args.file).read_text(encoding="utf-8-sig").splitlines()
-    text = restore(lines, Path(args.privkey))
+    try:
+        text = restore(lines, Path(args.privkey))
+    except ToolError as error:
+        audit.record("qr.restore", "error", source=args.file, reason=str(error))
+        raise
+    audit.record("qr.restore", "ok", source=args.file, out=args.out or "pantalla")
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
         print(f"{ui.icon('ok')} Texto restaurado en: {args.out}")

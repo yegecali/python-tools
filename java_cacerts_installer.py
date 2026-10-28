@@ -19,6 +19,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from errors import ToolError, run_cli
+import audit
 import ui
 import project_settings
 import windows_env_setup
@@ -200,6 +201,7 @@ def main():
 
         if error:
             print(f"  {ui.icon('error')} No se pudo descargar el certificado: {error}")
+            audit.record("cacerts.install", "error", alias=alias, java_home=str(java_home), reason="descarga")
             failed.append(alias)
             continue
 
@@ -230,9 +232,11 @@ def main():
         )
         if result.returncode == 0:
             print(f"  {ui.icon('ok')} Importado")
+            audit.record("cacerts.install", "ok", alias=alias, java_home=str(java_home), cacerts=str(cacerts))
             installed.append(alias)
         else:
             print(f"  {ui.icon('error')} Error al importar:\n{result.stderr.strip()}")
+            audit.record("cacerts.install", "error", alias=alias, java_home=str(java_home), reason="importacion")
             failed.append(alias)
 
     print(f"\nResumen: {len(installed)} instalados, {len(failed)} con error")

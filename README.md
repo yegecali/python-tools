@@ -65,6 +65,7 @@ python3 main.py qr -- "https://intranet.empresa.com"
 python3 main.py textqr generate text.example.txt --out-dir qr_out
 python3 main.py textqr restore parts.txt --out recuperado.txt
 python3 main.py env                            # Java y Maven en Windows
+python3 main.py check                          # verifica configuracion, llaves y keytool
 ```
 
 El menú tiene estas opciones:
@@ -376,6 +377,7 @@ Variables principales:
 | `CERT_FETCH_ATTEMPTS` | `3` | intentos de descarga por dominio |
 | `CERT_FETCH_RETRY_DELAY` | `2` | espera inicial entre reintentos; se duplica en cada intento |
 | `CERT_FETCH_WORKERS` | `4` | certificados que se descargan en paralelo |
+| `AUDIT_LOG_FILE` | `logs/audit.log` | registro de operaciones, un JSON por linea; nunca guarda contraseñas ni valores |
 | `JAVA_CONFIG_FILE` / `MAVEN_CONFIG_FILE` | `config/java.json` / `config/maven.json` | versiones de Java y Maven (Windows) |
 | `KEYS_DIR` | `keys` | carpeta de las llaves |
 | `RSA_KEY_BITS` | `2048` | tamaño por defecto de las llaves RSA |

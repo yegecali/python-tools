@@ -17,6 +17,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from errors import ToolError, run_cli
+import audit
 import ui
 import project_settings
 
@@ -73,6 +74,8 @@ def main(argv=None):
 
     print(f"{ui.icon('ok')} Llave privada: {private_path}")
     print(f"{ui.icon('ok')} Llave publica: {public_path}")
+    audit.record("keygen", "ok", name=args.name, bits=args.bits,
+                 protected=not isinstance(encryption, serialization.NoEncryption))
 
 
 if __name__ == "__main__":

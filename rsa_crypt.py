@@ -27,6 +27,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from errors import ToolError, run_cli
+import audit
 import ui
 
 FORMAT_VERSION = 1
@@ -101,6 +102,7 @@ def cmd_encrypt(args):
         print(f"{ui.icon('ok')} Valor encriptado en: {args.out}")
     else:
         print(payload)
+    audit.record("encrypt", "ok", pubkey=str(args.pubkey), out=args.out or "pantalla")
 
 
 def cmd_decrypt(args):
@@ -110,6 +112,7 @@ def cmd_decrypt(args):
         payload = json.loads(raw)
         plaintext = decrypt(private_key, payload)
     except (ValueError, KeyError, InvalidTag) as error:
+        audit.record("decrypt", "error", privkey=str(args.privkey), reason="llave incorrecta o datos alterados")
         raise ToolError("No se pudo desencriptar: llave incorrecta o datos alterados") from error
 
     text = plaintext.decode("utf-8")
@@ -118,6 +121,7 @@ def cmd_decrypt(args):
         print(f"{ui.icon('ok')} Valor desencriptado en: {args.out}")
     else:
         print(text)
+    audit.record("decrypt", "ok", privkey=str(args.privkey), out=args.out or "pantalla")
 
 
 def build_parser():

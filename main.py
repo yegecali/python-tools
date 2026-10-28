@@ -18,6 +18,7 @@ Uso:
     python3 main.py textqr generate [opciones] ARCHIVO.txt
     python3 main.py textqr restore [opciones] PARTES.txt
     python3 main.py env                          # configura Java y Maven (Windows)
+    python3 main.py check                        # verifica la configuracion y las llaves
 
 Requiere las dependencias de requirements.txt: pip install -r requirements.txt
 """
@@ -27,6 +28,8 @@ from dataclasses import dataclass
 from typing import Callable
 
 from errors import ToolError, run_cli
+import audit
+import doctor
 import java_cacerts_installer
 import project_settings
 import ui
@@ -136,6 +139,15 @@ def action_windows_env():
     run_step(windows_env_setup.main)
 
 
+def action_check():
+    checks = doctor.run_checks()
+    for check in checks:
+        print(f"  {ui.icon('ok' if check.ok else 'error')} {check.name}: {check.detail}")
+    passed = sum(check.ok for check in checks)
+    print(f"\n{passed} de {len(checks)} comprobaciones correctas")
+    audit.record("check", "ok" if passed == len(checks) else "error", passed=passed, total=len(checks))
+
+
 def windows_label():
     label = "Configurar Java y Maven (usuario de Windows)"
     if sys.platform != "win32":
@@ -160,6 +172,7 @@ MENU = [
     Tool("Convertir un .txt en QR", "tool_text_generate", action_text_generate),
     Tool("Restaurar texto desde las partes de QR", "tool_text_restore", action_text_restore),
     Tool(windows_label(), "tool_windows", action_windows_env),
+    Tool("Verificar configuracion", "tool_check", action_check),
 ]
 
 # Command-line names. Lookups happen at call time so the modules can be replaced in tests.
@@ -171,6 +184,7 @@ CLI_COMMANDS = {
     "qr": lambda argv: qr_generator.main(argv),
     "textqr": lambda argv: text_qr.main(argv),
     "env": lambda argv: windows_env_setup.main(),
+    "check": lambda argv: action_check(),
 }
 
 

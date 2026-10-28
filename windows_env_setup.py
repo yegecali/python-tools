@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 from errors import ToolError, run_cli
+import audit
 import ui
 import project_settings
 
@@ -238,6 +239,8 @@ def main():
         apply_settings(settings, settings_files)
 
     notify_environment_change()
+    audit.record("env.configure", "ok", java=bool(java_home), maven=bool(maven_home),
+                 settings=str(settings) if settings else None)
     print(f"\n{ui.icon('ok')} Variables de usuario actualizadas.")
     print("    Abre una terminal nueva y verifica:")
     if java_home:
