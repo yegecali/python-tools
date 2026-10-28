@@ -375,6 +375,7 @@ Variables principales:
 | `CERT_FETCH_TIMEOUT` | `20` | segundos de espera por intento al descargar un certificado |
 | `CERT_FETCH_ATTEMPTS` | `3` | intentos de descarga por dominio |
 | `CERT_FETCH_RETRY_DELAY` | `2` | espera inicial entre reintentos; se duplica en cada intento |
+| `CERT_FETCH_WORKERS` | `4` | certificados que se descargan en paralelo |
 | `JAVA_CONFIG_FILE` / `MAVEN_CONFIG_FILE` | `config/java.json` / `config/maven.json` | versiones de Java y Maven (Windows) |
 | `KEYS_DIR` | `keys` | carpeta de las llaves |
 | `RSA_KEY_BITS` | `2048` | tamaño por defecto de las llaves RSA |

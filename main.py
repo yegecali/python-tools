@@ -23,6 +23,8 @@ Requiere las dependencias de requirements.txt: pip install -r requirements.txt
 """
 
 import sys
+from dataclasses import dataclass
+from typing import Callable
 
 from errors import ToolError, run_cli
 import java_cacerts_installer
@@ -48,6 +50,11 @@ def ask(prompt, default=""):
     return answer or default
 
 
+def flag(name, value):
+    """Return [name, value] when the user gave a value, otherwise nothing."""
+    return [name, value] if value else []
+
+
 def run_step(func, *args):
     """Run a tool and keep the menu alive when it fails."""
     try:
@@ -60,6 +67,8 @@ def run_step(func, *args):
         elif error.code:
             print(f"{ui.icon('error')} El paso termino con errores")
 
+
+# Interactive actions: ask the questions of the menu and run the tool.
 
 def action_cacerts():
     run_step(java_cacerts_installer.main)
@@ -78,10 +87,7 @@ def action_keygen():
 def action_encrypt():
     pubkey = ask("Llave publica", DEFAULT_PUBLIC)
     out = ask("Archivo de salida (vacio = mostrar en pantalla)")
-    argv = ["encrypt", "--pubkey", pubkey]
-    if out:
-        argv += ["--out", out]
-    run_step(rsa_crypt.main, argv)
+    run_step(rsa_crypt.main, ["encrypt", "--pubkey", pubkey, *flag("--out", out)])
 
 
 def action_decrypt():
@@ -91,10 +97,7 @@ def action_decrypt():
         print(f"{ui.icon('error')} Indica el archivo JSON encriptado")
         return
     out = ask("Archivo de salida (vacio = mostrar en pantalla)")
-    argv = ["decrypt", "--privkey", privkey, "--in", source]
-    if out:
-        argv += ["--out", out]
-    run_step(rsa_crypt.main, argv)
+    run_step(rsa_crypt.main, ["decrypt", "--privkey", privkey, "--in", source, *flag("--out", out)])
 
 
 def action_qr():
@@ -103,9 +106,8 @@ def action_qr():
         print(f"{ui.icon('error')} El texto esta vacio")
         return
     out = ask("Archivo de salida .png o .svg (vacio = mostrar en pantalla)")
-    argv = ["--out", out] if out else []
     # '--' evita que un texto que empieza con '-' se lea como opcion
-    run_step(qr_generator.main, [*argv, "--", text])
+    run_step(qr_generator.main, [*flag("--out", out), "--", text])
 
 
 def action_text_generate():
@@ -114,12 +116,9 @@ def action_text_generate():
         print(f"{ui.icon('error')} Indica el archivo .txt")
         return
     out_dir = ask("Carpeta para guardar los PNG (vacio = mostrar en pantalla)")
-    argv = ["generate", source]
-    if out_dir:
-        argv += ["--out-dir", out_dir]
+    argv = ["generate", source, *flag("--out-dir", out_dir)]
     if ask("Encriptar con la llave publica? (s/N)", "n").lower() == "s":
-        pubkey = ask("Llave publica", DEFAULT_PUBLIC)
-        argv += ["--encrypt", "--pubkey", pubkey]
+        argv += ["--encrypt", "--pubkey", ask("Llave publica", DEFAULT_PUBLIC)]
     run_step(text_qr.main, argv)
 
 
@@ -130,10 +129,7 @@ def action_text_restore():
         return
     privkey = ask("Llave privada (solo si el mensaje esta encriptado)", DEFAULT_PRIVATE)
     out = ask("Archivo de salida (vacio = mostrar en pantalla)")
-    argv = ["restore", parts, "--privkey", privkey]
-    if out:
-        argv += ["--out", out]
-    run_step(text_qr.main, argv)
+    run_step(text_qr.main, ["restore", parts, "--privkey", privkey, *flag("--out", out)])
 
 
 def action_windows_env():
@@ -147,26 +143,34 @@ def windows_label():
     return label
 
 
+@dataclass(frozen=True)
+class Tool:
+    label: str
+    icon: str
+    action: Callable[[], None]
+
+
+# The menu, in the order the user sees it.
 MENU = [
-    ("Instalar certificados en cacerts de Java", action_cacerts),
-    ("Generar llaves RSA", action_keygen),
-    ("Encriptar un valor", action_encrypt),
-    ("Desencriptar un valor", action_decrypt),
-    ("QR de un texto corto", action_qr),
-    ("Convertir un .txt en QR", action_text_generate),
-    ("Restaurar texto desde las partes de QR", action_text_restore),
-    (windows_label(), action_windows_env),
+    Tool("Instalar certificados en cacerts de Java", "tool_cacerts", action_cacerts),
+    Tool("Generar llaves RSA", "tool_keygen", action_keygen),
+    Tool("Encriptar un valor", "tool_encrypt", action_encrypt),
+    Tool("Desencriptar un valor", "tool_decrypt", action_decrypt),
+    Tool("QR de un texto corto", "tool_qr", action_qr),
+    Tool("Convertir un .txt en QR", "tool_text_generate", action_text_generate),
+    Tool("Restaurar texto desde las partes de QR", "tool_text_restore", action_text_restore),
+    Tool(windows_label(), "tool_windows", action_windows_env),
 ]
 
-TOOL_ICONS = {
-    action_cacerts: "tool_cacerts",
-    action_keygen: "tool_keygen",
-    action_encrypt: "tool_encrypt",
-    action_decrypt: "tool_decrypt",
-    action_qr: "tool_qr",
-    action_text_generate: "tool_text_generate",
-    action_text_restore: "tool_text_restore",
-    action_windows_env: "tool_windows",
+# Command-line names. Lookups happen at call time so the modules can be replaced in tests.
+CLI_COMMANDS = {
+    "cacerts": lambda argv: java_cacerts_installer.main(),
+    "keygen": lambda argv: rsa_keygen.main(argv),
+    "encrypt": lambda argv: rsa_crypt.main(["encrypt", *argv]),
+    "decrypt": lambda argv: rsa_crypt.main(["decrypt", *argv]),
+    "qr": lambda argv: qr_generator.main(argv),
+    "textqr": lambda argv: text_qr.main(argv),
+    "env": lambda argv: windows_env_setup.main(),
 }
 
 
@@ -174,8 +178,8 @@ def menu():
     print(f"\n{ui.icon('banner')} Caja de herramientas de Python")
     while True:
         print(f"\n{ui.icon('title')} Herramientas")
-        for number, (label, action) in enumerate(MENU, 1):
-            print(f"  {number}) {ui.icon(TOOL_ICONS[action])} {label}")
+        for number, tool in enumerate(MENU, 1):
+            print(f"  {number}) {ui.icon(tool.icon)} {tool.label}")
         print(f"  0) {ui.icon('exit')} Salir")
 
         choice = input(f"{ui.icon('prompt')} Opcion: ").strip()
@@ -185,30 +189,21 @@ def menu():
             print(f"{ui.icon('warn')} Opcion no valida")
             continue
         try:
-            MENU[int(choice) - 1][1]()
+            MENU[int(choice) - 1].action()
+        except ToolError as error:
+            print(f"{ui.icon('error')} {error}")
         except KeyboardInterrupt:
             print(f"\n{ui.icon('error')} Operacion cancelada, volviendo al menu")
 
 
 def dispatch(argv):
     command, rest = argv[0], argv[1:]
-    if command == "cacerts":
-        run_step(java_cacerts_installer.main)
-    elif command == "keygen":
-        run_step(rsa_keygen.main, rest)
-    elif command in ("encrypt", "decrypt"):
-        run_step(rsa_crypt.main, [command, *rest])
-    elif command == "qr":
-        run_step(qr_generator.main, rest)
-    elif command == "textqr":
-        run_step(text_qr.main, rest)
-    elif command == "env":
-        run_step(windows_env_setup.main)
-    else:
+    if command not in CLI_COMMANDS:
         raise ToolError(
             f"Comando desconocido: {command}\n"
-            "Uso: python3 main.py [cacerts|keygen|encrypt|decrypt|qr|textqr|env]"
+            f"Uso: python3 main.py [{'|'.join(CLI_COMMANDS)}]"
         )
+    run_step(CLI_COMMANDS[command], rest)
 
 
 if __name__ == "__main__":

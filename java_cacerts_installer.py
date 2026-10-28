@@ -14,6 +14,7 @@ import ssl
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -29,6 +30,7 @@ DEFAULT_PASSWORD = project_settings.get("CACERTS_PASSWORD", "changeit")
 CERT_TIMEOUT = project_settings.CERT_FETCH_TIMEOUT
 CERT_ATTEMPTS = project_settings.CERT_FETCH_ATTEMPTS
 CERT_RETRY_DELAY = project_settings.CERT_FETCH_RETRY_DELAY
+CERT_WORKERS = project_settings.CERT_FETCH_WORKERS
 CACERTS_CANDIDATES = ["lib/security/cacerts", "jre/lib/security/cacerts"]
 KEYTOOL_NAME = "keytool.exe" if sys.platform == "win32" else "keytool"
 
@@ -72,15 +74,12 @@ def load_hosts(domains_path):
 
 def fetch_pem(host, port, timeout=10):
     """Read the server certificate without validating it: the goal is to trust it."""
-    print(f"  Conectando a {host}:{port} ...")
     context = ssl.create_default_context()
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     with socket.create_connection((host, port), timeout=timeout) as sock:
         with context.wrap_socket(sock, server_hostname=host) as tls:
-            print(f"  Handshake TLS completo: {tls.version()}, cifrado {tls.cipher()[0]}")
             der = tls.getpeercert(binary_form=True)
-    print(f"  Certificado recibido ({len(der)} bytes)")
     return ssl.DER_cert_to_PEM_cert(der)
 
 
@@ -96,6 +95,28 @@ def download_pem(host, port):
             print(f"  {ui.icon('warn')} Intento {attempt}/{CERT_ATTEMPTS} fallo: {error}")
             print(f"      Reintentando en {wait} s ...")
             time.sleep(wait)
+
+
+def alias_for(host, port):
+    return host if port == 443 else f"{host}_{port}"
+
+
+def _download_or_error(entry):
+    host, port = entry
+    alias = alias_for(host, port)
+    try:
+        return alias, download_pem(host, port), None
+    except OSError as error:
+        return alias, None, str(error)
+
+
+def download_all(hosts):
+    """Download the certificates in parallel (the work is network bound).
+
+    Returns (alias, pem, error) in the original order, so the output stays readable.
+    """
+    with ThreadPoolExecutor(max_workers=CERT_WORKERS) as pool:
+        return list(pool.map(_download_or_error, hosts))
 
 
 def run_keytool(java_home, *args):
@@ -170,14 +191,14 @@ def main():
     certs_dir = java_home / CERTS_DIR
     certs_dir.mkdir(exist_ok=True)
 
-    installed, failed = [], []
-    for index, (host, port) in enumerate(hosts, 1):
-        alias = host if port == 443 else f"{host}_{port}"
-        print(f"\n[{index}/{len(hosts)}] {alias}")
+    print(f"\nDescargando {len(hosts)} certificados ({CERT_WORKERS} en paralelo) ...")
+    downloads = download_all(hosts)
 
-        try:
-            pem = download_pem(host, port)
-        except OSError as error:
+    installed, failed = [], []
+    for index, (alias, pem, error) in enumerate(downloads, 1):
+        print(f"\n[{index}/{len(downloads)}] {alias}")
+
+        if error:
             print(f"  {ui.icon('error')} No se pudo descargar el certificado: {error}")
             failed.append(alias)
             continue

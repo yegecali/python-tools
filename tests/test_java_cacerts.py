@@ -216,3 +216,45 @@ def test_ask_java_home_asks_path_when_nothing_is_configured(tmp_path, monkeypatc
     monkeypatch.setattr("builtins.input", lambda prompt="": "  /opt/jdk  ")
 
     assert installer.ask_java_home() == "/opt/jdk"
+
+
+def test_certificates_download_in_parallel_and_keep_order(monkeypatch):
+    import threading
+    import time
+
+    active, peak = [], []
+    lock = threading.Lock()
+
+    def slow_fetch(host, port, timeout=10):
+        with lock:
+            active.append(host)
+            peak.append(len(active))
+        time.sleep(0.2)
+        with lock:
+            active.remove(host)
+        return f"PEM-{host}"
+
+    monkeypatch.setattr(installer, "fetch_pem", slow_fetch)
+    monkeypatch.setattr(installer, "CERT_WORKERS", 4)
+
+    hosts = [("a.com", 443), ("b.com", 443), ("c.com", 443), ("d.com", 443)]
+    results = installer.download_all(hosts)
+
+    assert max(peak) > 1  # more than one download was in flight at the same time
+    assert [alias for alias, _, _ in results] == ["a.com", "b.com", "c.com", "d.com"]
+    assert results[0][1] == "PEM-a.com"
+
+
+def test_download_all_reports_failures_without_stopping_the_rest(monkeypatch):
+    def fetch(host, port, timeout=10):
+        if host == "roto.com":
+            raise OSError("sin conexion")
+        return "PEM-OK"
+
+    monkeypatch.setattr(installer, "fetch_pem", fetch)
+    monkeypatch.setattr(installer, "CERT_RETRY_DELAY", 0)
+
+    results = installer.download_all([("roto.com", 443), ("bien.com", 443)])
+
+    assert results[0] == ("roto.com", None, "sin conexion")
+    assert results[1] == ("bien.com", "PEM-OK", None)
