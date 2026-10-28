@@ -18,6 +18,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from errors import ToolError, run_cli
+import ui
 import project_settings
 
 JAVA_CONFIG = project_settings.JAVA_CONFIG_FILE
@@ -34,14 +36,14 @@ MAVEN_STALE = re.compile(r"[\\/](apache-)?maven[^\\/]*[\\/]bin[\\/]?$", re.IGNOR
 
 def load_config(path):
     if not path.exists():
-        sys.exit(f"[x] No existe {path}")
+        raise ToolError(f"No existe {path}")
     try:
         data = json.loads(path.read_text(encoding="utf-8-sig"))
     except json.JSONDecodeError as error:
-        sys.exit(f"[x] {path.name} no es JSON valido: {error}")
+        raise ToolError(f"{path.name} no es JSON valido: {error}")
     versions = data.get("versions")
     if not isinstance(versions, dict) or not versions:
-        sys.exit(f"[x] {path.name}: 'versions' debe ser un objeto con al menos una entrada")
+        raise ToolError(f"{path.name}: 'versions' debe ser un objeto con al menos una entrada")
     return data
 
 
@@ -54,7 +56,7 @@ def ask_choice(title, options):
         answer = input("Elige un numero: ").strip()
         if answer.isdigit() and 1 <= int(answer) <= len(keys):
             return keys[int(answer) - 1]
-        print("[!] Opcion no valida")
+        print(f"{ui.icon('warn')} Opcion no valida")
 
 
 def ask_yes(prompt):
@@ -70,13 +72,13 @@ def choose_targets():
         answer = input("Opcion: ").strip()
         if answer in ("1", "2", "3"):
             return {"1": {"java"}, "2": {"maven"}, "3": {"java", "maven"}}[answer]
-        print("[!] Opcion no valida")
+        print(f"{ui.icon('warn')} Opcion no valida")
 
 
 def validate_home(path, executable):
     home = Path(path)
     if not (home / "bin" / executable).is_file():
-        sys.exit(f"[x] No encuentro bin\\{executable} en: {home}")
+        raise ToolError(f"No encuentro bin\\{executable} en: {home}")
     return str(home)
 
 
@@ -123,7 +125,7 @@ def settings_profiles(config):
         profiles["default"] = config["settings"]
     for name, path in profiles.items():
         if not Path(path).is_file():
-            sys.exit(f"[x] Perfil de settings '{name}': no existe {path}")
+            raise ToolError(f"Perfil de settings '{name}': no existe {path}")
     return profiles
 
 
@@ -175,7 +177,7 @@ def apply_settings(source, profile_files):
 
 def main():
     if sys.platform != "win32":
-        sys.exit("[x] Este script solo funciona en Windows")
+        raise ToolError("Este script solo funciona en Windows")
 
     targets = choose_targets()
     java_home = maven_home = settings = None
@@ -220,7 +222,8 @@ def main():
         print(f"  settings.xml <- {settings}")
 
     if not ask_yes("\nAplicar cambios?"):
-        sys.exit("Cancelado, no se modifico nada")
+        print("Cancelado, no se modifico nada")
+        return
 
     import winreg
 
@@ -235,7 +238,7 @@ def main():
         apply_settings(settings, settings_files)
 
     notify_environment_change()
-    print("\n[+] Variables de usuario actualizadas.")
+    print(f"\n{ui.icon('ok')} Variables de usuario actualizadas.")
     print("    Abre una terminal nueva y verifica:")
     if java_home:
         print("      java -version")
@@ -244,7 +247,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit("\n[x] Cancelado")
+    run_cli(main)

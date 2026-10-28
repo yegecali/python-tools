@@ -20,6 +20,8 @@ import qrcode
 from qrcode.constants import ERROR_CORRECT_H, ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q
 from qrcode.exceptions import DataOverflowError
 
+from errors import ToolError, run_cli
+import ui
 import project_settings
 
 EC_LEVELS = {
@@ -50,7 +52,7 @@ def save_qr(qr, out):
 
         image = qr.make_image(image_factory=SvgPathImage)
     else:
-        sys.exit("[x] Formato no soportado. Usa una extension .png o .svg")
+        raise ToolError("Formato no soportado. Usa una extension .png o .svg")
     image.save(str(out))
 
 
@@ -81,17 +83,17 @@ def main(argv=None):
 
     text = args.text if args.text is not None else input("Texto para el QR: ")
     if not text:
-        sys.exit("[x] El texto esta vacio")
+        raise ToolError("El texto esta vacio")
 
     try:
         qr = build_qr(text, args.ec, args.box)
     except (DataOverflowError, ValueError):
         # qrcode raises ValueError when no QR version can hold the data
-        sys.exit("[x] El texto es demasiado largo para un codigo QR")
+        raise ToolError("El texto es demasiado largo para un codigo QR")
 
     if args.out:
         save_qr(qr, args.out)
-        print(f"[+] QR guardado en: {args.out}")
+        print(f"{ui.icon('ok')} QR guardado en: {args.out}")
     else:
         print_terminal(qr)
 
@@ -99,7 +101,4 @@ def main(argv=None):
 if __name__ == "__main__":
     # Never crash on characters the console cannot encode (e.g. emoji in redirected output)
     sys.stdout.reconfigure(errors="replace")
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit("\n[x] Cancelado")
+    run_cli(main)

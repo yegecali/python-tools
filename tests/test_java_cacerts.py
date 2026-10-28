@@ -5,6 +5,7 @@ import sys
 import pytest
 
 import java_cacerts_installer as installer
+from errors import ToolError
 
 
 def write_domains(path, data, bom=False):
@@ -153,7 +154,7 @@ def test_failed_download_keeps_previous_crt(tmp_path, monkeypatch):
         lambda java_home, *args: subprocess.CompletedProcess(args, 0, stdout="", stderr=""),
     )
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ToolError):
         installer.main()
     assert (certs / "google.com.crt").read_text() == "PEM-PREVIO"
 

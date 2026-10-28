@@ -11,22 +11,23 @@ Requires the 'cryptography' package:  pip install cryptography
 import argparse
 import getpass
 import os
-import sys
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+from errors import ToolError, run_cli
+import ui
 import project_settings
 
 
 def ask_passphrase():
     passphrase = getpass.getpass("Passphrase para la llave privada (vacio = sin cifrar): ")
     if not passphrase:
-        print("[!] La llave privada quedara sin cifrar. Protege el archivo.")
+        print(f"{ui.icon('warn')} La llave privada quedara sin cifrar. Protege el archivo.")
         return serialization.NoEncryption()
     if getpass.getpass("Repite la passphrase: ") != passphrase:
-        sys.exit("[x] Las passphrases no coinciden")
+        raise ToolError("Las passphrases no coinciden")
     return serialization.BestAvailableEncryption(passphrase.encode("utf-8"))
 
 
@@ -48,7 +49,7 @@ def main(argv=None):
     if not args.force:
         for path in (private_path, public_path):
             if path.exists():
-                sys.exit(f"[x] Ya existe {path}. Usa --force para sobrescribir.")
+                raise ToolError(f"Ya existe {path}. Usa --force para sobrescribir.")
 
     encryption = ask_passphrase()
 
@@ -70,12 +71,9 @@ def main(argv=None):
     if os.name == "posix":
         os.chmod(private_path, 0o600)
 
-    print(f"[+] Llave privada: {private_path}")
-    print(f"[+] Llave publica: {public_path}")
+    print(f"{ui.icon('ok')} Llave privada: {private_path}")
+    print(f"{ui.icon('ok')} Llave publica: {public_path}")
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit("\n[x] Cancelado")
+    run_cli(main)

@@ -26,6 +26,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from errors import ToolError, run_cli
+import ui
+
 FORMAT_VERSION = 1
 OAEP = padding.OAEP(
     mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -65,8 +68,8 @@ def decrypt(private_key, payload):
 def read_key_file(path, kind):
     key_file = Path(path)
     if not key_file.is_file():
-        sys.exit(
-            f"[x] No existe la llave {kind}: {key_file}\n"
+        raise ToolError(
+            f"No existe la llave {kind}: {key_file}\n"
             "    Genera primero las llaves con la opcion 'Generar llaves RSA' del menu"
         )
     return key_file.read_bytes()
@@ -90,12 +93,12 @@ def cmd_encrypt(args):
     public_key = load_public_key(args.pubkey)
     value = args.value if args.value is not None else getpass.getpass("Valor a encriptar: ")
     if not value:
-        sys.exit("[x] El valor esta vacio")
+        raise ToolError("El valor esta vacio")
 
     payload = json.dumps(encrypt(public_key, value.encode("utf-8")), indent=2)
     if args.out:
         Path(args.out).write_text(payload + "\n", encoding="utf-8")
-        print(f"[+] Valor encriptado en: {args.out}")
+        print(f"{ui.icon('ok')} Valor encriptado en: {args.out}")
     else:
         print(payload)
 
@@ -107,12 +110,12 @@ def cmd_decrypt(args):
         payload = json.loads(raw)
         plaintext = decrypt(private_key, payload)
     except (ValueError, KeyError, InvalidTag) as error:
-        raise SystemExit("[x] No se pudo desencriptar: llave incorrecta o datos alterados") from error
+        raise ToolError("No se pudo desencriptar: llave incorrecta o datos alterados") from error
 
     text = plaintext.decode("utf-8")
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
-        print(f"[+] Valor desencriptado en: {args.out}")
+        print(f"{ui.icon('ok')} Valor desencriptado en: {args.out}")
     else:
         print(text)
 
@@ -142,7 +145,4 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit("\n[x] Cancelado")
+    run_cli(main)

@@ -24,6 +24,7 @@ Requiere las dependencias de requirements.txt: pip install -r requirements.txt
 
 import sys
 
+from errors import ToolError, run_cli
 import java_cacerts_installer
 import project_settings
 import ui
@@ -48,9 +49,11 @@ def ask(prompt, default=""):
 
 
 def run_step(func, *args):
-    """Run a tool and keep the menu alive when it exits with an error."""
+    """Run a tool and keep the menu alive when it fails."""
     try:
         func(*args)
+    except ToolError as error:
+        print(f"{ui.icon('error')} {error}")
     except SystemExit as error:
         if isinstance(error.code, str):
             print(error.code)
@@ -202,8 +205,8 @@ def dispatch(argv):
     elif command == "env":
         run_step(windows_env_setup.main)
     else:
-        sys.exit(
-            f"{ui.icon('error')} Comando desconocido: {command}\n"
+        raise ToolError(
+            f"Comando desconocido: {command}\n"
             "Uso: python3 main.py [cacerts|keygen|encrypt|decrypt|qr|textqr|env]"
         )
 
@@ -211,10 +214,4 @@ def dispatch(argv):
 if __name__ == "__main__":
     # Never crash on characters the console cannot encode (e.g. emoji in redirected output)
     sys.stdout.reconfigure(errors="replace")
-    try:
-        if len(sys.argv) > 1:
-            dispatch(sys.argv[1:])
-        else:
-            menu()
-    except (KeyboardInterrupt, EOFError):
-        sys.exit(f"\n{ui.icon('error')} Cancelado")
+    run_cli(lambda: dispatch(sys.argv[1:]) if len(sys.argv) > 1 else menu())

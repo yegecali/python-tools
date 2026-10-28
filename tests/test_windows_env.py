@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 import windows_env_setup as wes
+from errors import ToolError
 
 JAVA_ENTRY = "%JAVA_HOME%\\bin"
 MAVEN_ENTRY = "%MAVEN_HOME%\\bin"
@@ -76,14 +77,14 @@ def test_load_config_accepts_bom(tmp_path):
 def test_load_config_rejects_invalid_json(tmp_path):
     cfg = tmp_path / "java.json"
     cfg.write_text("{no es json", encoding="utf-8")
-    with pytest.raises(SystemExit, match="no es JSON valido"):
+    with pytest.raises(ToolError, match="no es JSON valido"):
         wes.load_config(cfg)
 
 
 def test_load_config_requires_versions(tmp_path):
     cfg = tmp_path / "maven.json"
     cfg.write_text(json.dumps({"versions": {}}), encoding="utf-8")
-    with pytest.raises(SystemExit, match="versions"):
+    with pytest.raises(ToolError, match="versions"):
         wes.load_config(cfg)
 
 
@@ -91,7 +92,7 @@ def test_validate_home_checks_executable(tmp_path):
     (tmp_path / "bin").mkdir()
     (tmp_path / "bin" / "java.exe").write_text("x")
     assert wes.validate_home(str(tmp_path), "java.exe") == str(tmp_path)
-    with pytest.raises(SystemExit, match="mvn.cmd"):
+    with pytest.raises(ToolError, match="mvn.cmd"):
         wes.validate_home(str(tmp_path), "mvn.cmd")
 
 
@@ -111,7 +112,7 @@ def test_legacy_settings_key_becomes_default_profile(tmp_path):
 
 
 def test_missing_profile_file_exits(tmp_path):
-    with pytest.raises(SystemExit, match="no existe"):
+    with pytest.raises(ToolError, match="no existe"):
         wes.settings_profiles({"settings_profiles": {"x": str(tmp_path / "nope.xml")}})
 
 
@@ -218,5 +219,5 @@ def test_missing_user_variable_reads_as_empty(fake_registry):
 
 def test_main_refuses_to_run_outside_windows(monkeypatch):
     monkeypatch.setattr(sys, "platform", "linux")
-    with pytest.raises(SystemExit, match="solo funciona en Windows"):
+    with pytest.raises(ToolError, match="solo funciona en Windows"):
         wes.main()

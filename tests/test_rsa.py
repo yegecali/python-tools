@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives import serialization
 
 import rsa_crypt
 import rsa_keygen
+from errors import ToolError
 
 
 def test_roundtrip_short_text(rsa_key_files):
@@ -83,7 +84,7 @@ def test_keygen_refuses_to_overwrite_without_force(tmp_path, monkeypatch):
     args = ["--name", "dup", "--bits", "2048", "--out", str(tmp_path)]
     rsa_keygen.main(args)
 
-    with pytest.raises(SystemExit, match="--force"):
+    with pytest.raises(ToolError, match="--force"):
         rsa_keygen.main(args)
     rsa_keygen.main([*args, "--force"])  # --force overwrites
 
@@ -103,10 +104,10 @@ def test_keygen_with_passphrase_encrypts_private_key(tmp_path, monkeypatch):
 def test_keygen_rejects_mismatched_passphrases(tmp_path, monkeypatch):
     answers = iter(["uno", "dos"])
     monkeypatch.setattr(getpass, "getpass", lambda prompt="": next(answers))
-    with pytest.raises(SystemExit, match="no coinciden"):
+    with pytest.raises(ToolError, match="no coinciden"):
         rsa_keygen.main(["--name", "mal", "--bits", "2048", "--out", str(tmp_path)])
 
 
 def test_missing_public_key_explains_how_to_generate_keys(tmp_path):
-    with pytest.raises(SystemExit, match="Generar llaves RSA"):
+    with pytest.raises(ToolError, match="Generar llaves RSA"):
         rsa_crypt.load_public_key(tmp_path / "rsa_public.pem")

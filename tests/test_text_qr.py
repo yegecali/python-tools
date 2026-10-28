@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-import rsa_crypt
 import text_qr as tq
+from errors import ToolError
 
 NO_KEY = Path("no-existe-private.pem")
 
@@ -78,7 +78,7 @@ def test_encrypted_roundtrip(rsa_key_files):
 def test_encrypted_message_with_wrong_key_exits(rsa_key_files, other_rsa_key_files):
     public_path, _ = rsa_key_files
     _, lines, _ = roundtrip("secreto", chunk=1200, pubkey=public_path, privkey=rsa_key_files[1])
-    with pytest.raises(SystemExit, match="desencriptar"):
+    with pytest.raises(ToolError, match="desencriptar"):
         tq.restore(lines, other_rsa_key_files[1])
 
 
@@ -86,7 +86,7 @@ def test_missing_part_is_reported_with_its_number():
     _, lines, _ = roundtrip(noisy_text(1500, seed=3), chunk=100)
     assert len(lines) >= 3
     without_second = [line for i, line in enumerate(lines, 1) if i != 2]
-    with pytest.raises(SystemExit, match="Faltan las partes: 2"):
+    with pytest.raises(ToolError, match="Faltan las partes: 2"):
         tq.restore(without_second, NO_KEY)
 
 
@@ -95,21 +95,21 @@ def test_altered_part_fails_checksum():
     fields = lines[1].split("|", 4)
     fields[4] = ("A" if fields[4][0] != "A" else "B") + fields[4][1:]
     lines[1] = "|".join(fields)
-    with pytest.raises(SystemExit, match="no coincide"):
+    with pytest.raises(ToolError, match="no coincide"):
         tq.restore(lines, NO_KEY)
 
 
 def test_parts_from_two_messages_are_not_mixed():
     _, first, _ = roundtrip(noisy_text(400, seed=5), chunk=100)
     _, second, _ = roundtrip(noisy_text(400, seed=6), chunk=100)
-    with pytest.raises(SystemExit, match="mensajes distintos"):
+    with pytest.raises(ToolError, match="mensajes distintos"):
         tq.restore(first + second, NO_KEY)
 
 
 def test_restore_rejects_empty_input_and_foreign_lines():
-    with pytest.raises(SystemExit, match="No encontre partes"):
+    with pytest.raises(ToolError, match="No encontre partes"):
         tq.restore(["", "   "], NO_KEY)
-    with pytest.raises(SystemExit, match="no es una parte"):
+    with pytest.raises(ToolError, match="no es una parte"):
         tq.restore(["esto no es un QR"], NO_KEY)
 
 

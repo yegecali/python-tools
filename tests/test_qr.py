@@ -4,6 +4,7 @@ import pytest
 from qrcode.exceptions import DataOverflowError
 
 import qr_generator as qg
+from errors import ToolError
 
 
 class ConsoleWithoutBlocks(io.StringIO):
@@ -32,7 +33,7 @@ def test_save_png_and_svg(tmp_path):
 
 
 def test_save_rejects_unknown_extension(tmp_path):
-    with pytest.raises(SystemExit, match="Formato no soportado"):
+    with pytest.raises(ToolError, match="Formato no soportado"):
         qg.save_qr(qg.build_qr("hola", "M", 10), tmp_path / "code.gif")
 
 

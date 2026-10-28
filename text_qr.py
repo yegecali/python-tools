@@ -27,6 +27,8 @@ from pathlib import Path
 
 from cryptography.exceptions import InvalidTag
 
+from errors import ToolError, run_cli
+import ui
 import project_settings
 import rsa_crypt
 from qr_generator import build_qr, print_terminal, save_qr
@@ -87,34 +89,34 @@ def restore(lines, privkey_path):
         try:
             mode, message_id, index, total, data = parse_part(line)
         except ValueError as error:
-            sys.exit(f"[x] Linea {number}: {error}")
+            raise ToolError(f"Linea {number}: {error}")
         message = messages.setdefault(message_id, {"mode": mode, "total": total, "parts": {}})
         if message["total"] != total or message["mode"] != mode:
-            sys.exit(f"[x] Linea {number}: las partes no pertenecen al mismo mensaje")
+            raise ToolError(f"Linea {number}: las partes no pertenecen al mismo mensaje")
         message["parts"][index] = data
 
     if not messages:
-        sys.exit("[x] No encontre partes TQR1 en el archivo")
+        raise ToolError("No encontre partes TQR1 en el archivo")
     if len(messages) > 1:
-        sys.exit(f"[x] Hay partes de {len(messages)} mensajes distintos: {', '.join(messages)}")
+        raise ToolError(f"Hay partes de {len(messages)} mensajes distintos: {', '.join(messages)}")
 
     message_id, message = next(iter(messages.items()))
     missing = [i for i in range(1, message["total"] + 1) if i not in message["parts"]]
     if missing:
-        sys.exit(f"[x] Faltan las partes: {', '.join(map(str, missing))} de {message['total']}")
+        raise ToolError(f"Faltan las partes: {', '.join(map(str, missing))} de {message['total']}")
 
     payload = "".join(message["parts"][i] for i in range(1, message["total"] + 1))
     if hashlib.sha256(payload.encode("ascii")).hexdigest()[:12] != message_id:
-        sys.exit("[x] El contenido no coincide con el identificador: alguna parte esta mal copiada")
+        raise ToolError("El contenido no coincide con el identificador: alguna parte esta mal copiada")
 
     if message["mode"] == "E":
         try:
             private_key = rsa_crypt.load_private_key(privkey_path)
             compressed = rsa_crypt.decrypt(private_key, json.loads(payload))
         except FileNotFoundError:
-            sys.exit(f"[x] No existe la llave privada: {privkey_path}")
+            raise ToolError(f"No existe la llave privada: {privkey_path}")
         except (ValueError, KeyError, InvalidTag) as error:
-            raise SystemExit("[x] No se pudo desencriptar: llave incorrecta o datos alterados") from error
+            raise ToolError("No se pudo desencriptar: llave incorrecta o datos alterados") from error
     else:
         compressed = base64.b64decode(payload)
     return zlib.decompress(compressed).decode("utf-8")
@@ -123,23 +125,23 @@ def restore(lines, privkey_path):
 def cmd_generate(args):
     source = Path(args.file)
     if not source.is_file():
-        sys.exit(f"[x] No existe el archivo: {source}")
+        raise ToolError(f"No existe el archivo: {source}")
 
     raw = source.read_text(encoding="utf-8-sig")
     text = clean_text(raw, args.keep_newlines)
     if not text:
-        sys.exit("[x] El archivo no tiene texto despues de limpiarlo")
+        raise ToolError("El archivo no tiene texto despues de limpiarlo")
 
     pubkey = None
     if args.encrypt:
         pubkey = Path(args.pubkey)
         if not pubkey.is_file():
-            sys.exit(f"[x] No existe la llave publica: {pubkey}")
+            raise ToolError(f"No existe la llave publica: {pubkey}")
 
     try:
         mode, payload = make_payload(text, pubkey)
     except ValueError as error:
-        sys.exit(f"[x] No se pudo leer la llave publica: {error}")
+        raise ToolError(f"No se pudo leer la llave publica: {error}")
 
     parts = split_parts(mode, payload, args.chunk)
     print(f"Caracteres: {len(raw)} originales -> {len(text)} limpios")
@@ -149,7 +151,7 @@ def cmd_generate(args):
     try:
         qrs = [build_qr(part, args.ec, args.box) for part in parts]
     except ValueError:
-        sys.exit("[x] Una parte no cabe en un QR. Usa un --chunk mas pequeno")
+        raise ToolError("Una parte no cabe en un QR. Usa un --chunk mas pequeno")
 
     total = len(qrs)
     if args.out_dir:
@@ -158,7 +160,7 @@ def cmd_generate(args):
         for index, qr in enumerate(qrs, 1):
             path = out_dir / f"parte_{index:02d}_de_{total:02d}.png"
             save_qr(qr, path)
-            print(f"[+] {path}")
+            print(f"{ui.icon('ok')} {path}")
         return
 
     for index, qr in enumerate(qrs, 1):
@@ -173,7 +175,7 @@ def cmd_restore(args):
     text = restore(lines, Path(args.privkey))
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
-        print(f"[+] Texto restaurado en: {args.out}")
+        print(f"{ui.icon('ok')} Texto restaurado en: {args.out}")
     else:
         print(text)
 
@@ -214,7 +216,4 @@ def main(argv=None):
 if __name__ == "__main__":
     # Never crash on characters the console cannot encode (e.g. emoji in redirected output)
     sys.stdout.reconfigure(errors="replace")
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit("\n[x] Cancelado")
+    run_cli(main)

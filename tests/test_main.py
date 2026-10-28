@@ -4,6 +4,7 @@ import pytest
 
 import main as app
 import qr_generator
+from errors import ToolError
 
 
 def test_menu_lists_every_tool():
@@ -22,10 +23,10 @@ def test_windows_option_says_when_unavailable(monkeypatch):
 
 def test_run_step_prints_exit_message_and_keeps_going(capsys):
     def failing():
-        raise SystemExit("[x] algo salio mal")
+        raise ToolError("algo salio mal")
 
     app.run_step(failing)  # must not propagate
-    assert "[x] algo salio mal" in capsys.readouterr().out
+    assert "algo salio mal" in capsys.readouterr().out
 
 
 def test_run_step_reports_numeric_failure(capsys):
@@ -52,5 +53,5 @@ def test_dispatch_routes_qr_to_generator(monkeypatch):
 
 
 def test_dispatch_rejects_unknown_command():
-    with pytest.raises(SystemExit, match="Comando desconocido"):
+    with pytest.raises(ToolError, match="Comando desconocido"):
         app.dispatch(["nada"])

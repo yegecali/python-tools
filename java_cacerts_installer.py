@@ -17,6 +17,8 @@ import time
 from pathlib import Path
 from urllib.parse import urlparse
 
+from errors import ToolError, run_cli
+import ui
 import project_settings
 import windows_env_setup
 
@@ -62,7 +64,7 @@ def load_hosts(domains_path):
     for entry in data:
         parsed = urlparse(entry if "://" in entry else f"//{entry}")
         if not parsed.hostname:
-            print(f"[!] Entrada ignorada, no es un dominio valido: {entry}")
+            print(f"{ui.icon('warn')} Entrada ignorada, no es un dominio valido: {entry}")
             continue
         hosts.append((parsed.hostname, parsed.port or 443))
     return list(dict.fromkeys(hosts))
@@ -91,7 +93,7 @@ def download_pem(host, port):
             if attempt == CERT_ATTEMPTS:
                 raise
             wait = CERT_RETRY_DELAY * 2 ** (attempt - 1)
-            print(f"  [!] Intento {attempt}/{CERT_ATTEMPTS} fallo: {error}")
+            print(f"  {ui.icon('warn')} Intento {attempt}/{CERT_ATTEMPTS} fallo: {error}")
             print(f"      Reintentando en {wait} s ...")
             time.sleep(wait)
 
@@ -135,18 +137,18 @@ def main():
     raw = ask_java_home()
     java_home = resolve_java_home(raw)
     if java_home is None:
-        sys.exit(f"[x] No encuentro bin/keytool dentro de: {raw}")
+        raise ToolError(f"No encuentro bin/keytool dentro de: {raw}")
 
     cacerts = find_cacerts(java_home)
     if cacerts is None:
-        sys.exit(f"[x] No encuentro cacerts dentro de: {java_home}")
+        raise ToolError(f"No encuentro cacerts dentro de: {java_home}")
 
     if not DOMAINS_FILE.exists():
-        sys.exit(f"[x] No existe {DOMAINS_FILE} (copia config/domains.example.json)")
+        raise ToolError(f"No existe {DOMAINS_FILE} (copia config/domains.example.json)")
 
     hosts = load_hosts(DOMAINS_FILE)
     if not hosts:
-        sys.exit("[x] config/domains.json no tiene dominios validos")
+        raise ToolError("config/domains.json no tiene dominios validos")
 
     print(f"\nJava:     {java_home}")
     print(f"cacerts:  {cacerts}")
@@ -157,13 +159,13 @@ def main():
     print("\nVerificando contrasena:")
     check = run_keytool(java_home, "-list", "-keystore", str(cacerts), "-storepass", password)
     if check.returncode != 0:
-        sys.exit(f"[x] No se pudo abrir cacerts (contrasena incorrecta?):\n{check.stderr.strip()}")
+        raise ToolError(f"No se pudo abrir cacerts (contrasena incorrecta?):\n{check.stderr.strip()}")
     print("  OK")
 
     backup = cacerts.with_name(cacerts.name + ".bak")
     if not backup.exists():
         shutil.copy2(cacerts, backup)
-        print(f"\n[+] Backup creado: {backup}")
+        print(f"\n{ui.icon('ok')} Backup creado: {backup}")
 
     certs_dir = java_home / CERTS_DIR
     certs_dir.mkdir(exist_ok=True)
@@ -176,7 +178,7 @@ def main():
         try:
             pem = download_pem(host, port)
         except OSError as error:
-            print(f"  [x] No se pudo descargar el certificado: {error}")
+            print(f"  {ui.icon('error')} No se pudo descargar el certificado: {error}")
             failed.append(alias)
             continue
 
@@ -206,20 +208,17 @@ def main():
             "-storepass", password,
         )
         if result.returncode == 0:
-            print("  [+] Importado")
+            print(f"  {ui.icon('ok')} Importado")
             installed.append(alias)
         else:
-            print(f"  [x] Error al importar:\n{result.stderr.strip()}")
+            print(f"  {ui.icon('error')} Error al importar:\n{result.stderr.strip()}")
             failed.append(alias)
 
     print(f"\nResumen: {len(installed)} instalados, {len(failed)} con error")
     if failed:
         print("Con error:", ", ".join(failed))
-        sys.exit(1)
+        raise ToolError(f"Certificados con error: {', '.join(failed)}")
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit("\n[x] Cancelado")
+    run_cli(main)
